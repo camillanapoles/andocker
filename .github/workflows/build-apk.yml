@@ -115,7 +115,7 @@ jobs:
 
       - name: Build Release APK
         env:
-          KEYSTORE_FILE: omnibus-docker.jks
+          KEYSTORE_FILE: app/omnibus-docker.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
