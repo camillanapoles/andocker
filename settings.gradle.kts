@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "OMNIBUS-DOCKER-ANDROID"
-include ':app'
+include(":app")
