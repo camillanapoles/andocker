@@ -111,21 +111,31 @@ jobs:
         run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
       - name: Validate signing secrets
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -z "${{ secrets.SIGNING_KEY }}" ] || [ -z "${{ secrets.KEYSTORE_PASSWORD }}" ] || [ -z "${{ secrets.KEY_ALIAS }}" ] || [ -z "${{ secrets.KEY_PASSWORD }}" ]; then
-            echo "ERROR: Required secrets are missing!"
-            echo "Required secrets: SIGNING_KEY, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD"
+          MISSING_SECRETS=()
+          [ -z "$SIGNING_KEY" ] && MISSING_SECRETS+=("SIGNING_KEY")
+          [ -z "$KEYSTORE_PASSWORD" ] && MISSING_SECRETS+=("KEYSTORE_PASSWORD")
+          [ -z "$KEY_ALIAS" ] && MISSING_SECRETS+=("KEY_ALIAS")
+          [ -z "$KEY_PASSWORD" ] && MISSING_SECRETS+=("KEY_PASSWORD")
+          
+          if [ ${#MISSING_SECRETS[@]} -gt 0 ]; then
+            echo "ERROR: Required secrets are missing: ${MISSING_SECRETS[*]}"
             exit 1
           fi
           echo "✓ All required signing secrets are configured"
 
       - name: Decode Keystore
         run: |
-          KEYSTORE_DIR="${RUNNER_TEMP:-/tmp}/android_keystore_$$"
-          mkdir -p "$KEYSTORE_DIR"
+          KEYSTORE_DIR=$(mktemp -d "${RUNNER_TEMP:-/tmp}/android_keystore.XXXXXX")
           echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > "$KEYSTORE_DIR/omnibus-docker.jks"
           echo "KEYSTORE_PATH=$KEYSTORE_DIR/omnibus-docker.jks" >> $GITHUB_ENV
           echo "KEYSTORE_DIR=$KEYSTORE_DIR" >> $GITHUB_ENV
+          echo "✓ Keystore decoded to: $KEYSTORE_DIR"
 
       - name: Build Release APK
         env:
@@ -175,11 +185,16 @@ jobs:
           # Securely remove keystore directory
           if [ -n "${{ env.KEYSTORE_DIR }}" ] && [ -d "${{ env.KEYSTORE_DIR }}" ]; then
             echo "Securely removing keystore files from: ${{ env.KEYSTORE_DIR }}"
-            find "${{ env.KEYSTORE_DIR }}" -type f -exec shred -vfz -n 3 {} \; 2>/dev/null || true
+            if find "${{ env.KEYSTORE_DIR }}" -type f -exec shred -vfz -n 3 {} \; 2>&1 | tee /tmp/cleanup.log; then
+              echo "✓ Keystore files securely shredded"
+            else
+              echo "⚠ WARNING: Some files could not be shredded (see log above), proceeding with removal"
+              cat /tmp/cleanup.log
+            fi
             rm -rf "${{ env.KEYSTORE_DIR }}"
-            echo "✓ Keystore files securely removed"
+            echo "✓ Keystore directory removed"
           else
-            echo "No keystore directory to clean up"
+            echo "ℹ No keystore directory to clean up"
           fi
 
       - name: Create Release
