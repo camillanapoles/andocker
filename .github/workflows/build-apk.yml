@@ -131,7 +131,7 @@ jobs:
 
       - name: Decode Keystore
         run: |
-          KEYSTORE_DIR=$(mktemp -d "${RUNNER_TEMP:-/tmp}/android_keystore.XXXXXX")
+          KEYSTORE_DIR=$(mktemp -d "${RUNNER_TEMP:-/tmp}/android_keystore.XXXXXXXXXX")
           echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > "$KEYSTORE_DIR/omnibus-docker.jks"
           echo "KEYSTORE_PATH=$KEYSTORE_DIR/omnibus-docker.jks" >> $GITHUB_ENV
           echo "KEYSTORE_DIR=$KEYSTORE_DIR" >> $GITHUB_ENV
@@ -153,25 +153,29 @@ jobs:
             exit 1
           fi
           
-          # Verify the APK is signed and capture output
-          if ! jarsigner -verify -verbose -certs "$APK_FILE" 2>&1 | tee /tmp/jarsigner_output.txt; then
+          # Verify the APK is signed and capture output securely
+          JARSIGNER_LOG="${RUNNER_TEMP}/jarsigner_output.txt"
+          if ! jarsigner -verify -verbose -certs "$APK_FILE" 2>&1 | tee "$JARSIGNER_LOG"; then
             echo "ERROR: APK signature verification failed!"
-            echo "jarsigner output:"
-            cat /tmp/jarsigner_output.txt
+            echo "=== jarsigner output ===" >> $GITHUB_STEP_SUMMARY
+            cat "$JARSIGNER_LOG" >> $GITHUB_STEP_SUMMARY
+            rm -f "$JARSIGNER_LOG"
             exit 1
           fi
           echo "✓ APK signature verified successfully"
-          echo "jarsigner output:"
-          cat /tmp/jarsigner_output.txt
+          echo "=== APK Signature Verification ===" >> $GITHUB_STEP_SUMMARY
+          cat "$JARSIGNER_LOG" >> $GITHUB_STEP_SUMMARY
+          rm -f "$JARSIGNER_LOG"
           
           # Get file size and checksum
-          ls -lh "$APK_FILE"
-          echo ""
-          echo "MD5 Checksum:"
-          md5sum "$APK_FILE"
-          echo ""
-          echo "SHA256 Checksum:"
-          sha256sum "$APK_FILE"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "=== APK Details ===" >> $GITHUB_STEP_SUMMARY
+          ls -lh "$APK_FILE" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "MD5 Checksum:" >> $GITHUB_STEP_SUMMARY
+          md5sum "$APK_FILE" >> $GITHUB_STEP_SUMMARY
+          echo "SHA256 Checksum:" >> $GITHUB_STEP_SUMMARY
+          sha256sum "$APK_FILE" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
@@ -185,13 +189,15 @@ jobs:
           # Securely remove keystore directory
           if [ -n "${{ env.KEYSTORE_DIR }}" ] && [ -d "${{ env.KEYSTORE_DIR }}" ]; then
             echo "Securely removing keystore files from: ${{ env.KEYSTORE_DIR }}"
-            if find "${{ env.KEYSTORE_DIR }}" -type f -exec shred -vfz -n 3 {} \; 2>&1 | tee /tmp/cleanup.log; then
+            CLEANUP_LOG="${RUNNER_TEMP}/cleanup.log"
+            if find "${{ env.KEYSTORE_DIR }}" -type f -exec shred -vfz -n 3 {} \; 2>&1 | tee "$CLEANUP_LOG"; then
               echo "✓ Keystore files securely shredded"
             else
               echo "⚠ WARNING: Some files could not be shredded (see log above), proceeding with removal"
-              cat /tmp/cleanup.log
+              cat "$CLEANUP_LOG"
             fi
             rm -rf "${{ env.KEYSTORE_DIR }}"
+            rm -f "$CLEANUP_LOG"
             echo "✓ Keystore directory removed"
           else
             echo "ℹ No keystore directory to clean up"
