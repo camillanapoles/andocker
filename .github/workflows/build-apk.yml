@@ -131,7 +131,11 @@ jobs:
 
       - name: Decode Keystore
         run: |
-          KEYSTORE_DIR=$(mktemp -d "${RUNNER_TEMP:-/tmp}/android_keystore.XXXXXXXXXX")
+          if [ -z "$RUNNER_TEMP" ]; then
+            echo "ERROR: RUNNER_TEMP is not set. GitHub Actions environment is not properly configured."
+            exit 1
+          fi
+          KEYSTORE_DIR=$(mktemp -d "$RUNNER_TEMP/android_keystore.XXXXXXXXXX")
           echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > "$KEYSTORE_DIR/omnibus-docker.jks"
           echo "KEYSTORE_PATH=$KEYSTORE_DIR/omnibus-docker.jks" >> $GITHUB_ENV
           echo "KEYSTORE_DIR=$KEYSTORE_DIR" >> $GITHUB_ENV
@@ -153,22 +157,16 @@ jobs:
             exit 1
           fi
           
-          # Verify the APK is signed and capture output securely
-          JARSIGNER_LOG="${RUNNER_TEMP}/jarsigner_output.txt"
-          if ! jarsigner -verify -verbose -certs "$APK_FILE" 2>&1 | tee "$JARSIGNER_LOG"; then
+          # Verify the APK is signed (without exposing certificate details)
+          if ! jarsigner -verify -verbose "$APK_FILE" > /dev/null 2>&1; then
             echo "ERROR: APK signature verification failed!"
-            echo "=== jarsigner output ===" >> $GITHUB_STEP_SUMMARY
-            cat "$JARSIGNER_LOG" >> $GITHUB_STEP_SUMMARY
-            rm -f "$JARSIGNER_LOG"
+            echo "Attempting detailed verification for debugging..."
+            jarsigner -verify -verbose "$APK_FILE" || true
             exit 1
           fi
           echo "✓ APK signature verified successfully"
-          echo "=== APK Signature Verification ===" >> $GITHUB_STEP_SUMMARY
-          cat "$JARSIGNER_LOG" >> $GITHUB_STEP_SUMMARY
-          rm -f "$JARSIGNER_LOG"
           
           # Get file size and checksum
-          echo "" >> $GITHUB_STEP_SUMMARY
           echo "=== APK Details ===" >> $GITHUB_STEP_SUMMARY
           ls -lh "$APK_FILE" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -186,18 +184,12 @@ jobs:
       - name: Cleanup sensitive files
         if: always()
         run: |
-          # Securely remove keystore directory
+          # Remove keystore directory
+          # Note: RUNNER_TEMP is automatically cleaned by GitHub Actions,
+          # and the runner is ephemeral, so no additional data protection is needed
           if [ -n "${{ env.KEYSTORE_DIR }}" ] && [ -d "${{ env.KEYSTORE_DIR }}" ]; then
-            echo "Securely removing keystore files from: ${{ env.KEYSTORE_DIR }}"
-            CLEANUP_LOG="${RUNNER_TEMP}/cleanup.log"
-            if find "${{ env.KEYSTORE_DIR }}" -type f -exec shred -vfz -n 3 {} \; 2>&1 | tee "$CLEANUP_LOG"; then
-              echo "✓ Keystore files securely shredded"
-            else
-              echo "⚠ WARNING: Some files could not be shredded (see log above), proceeding with removal"
-              cat "$CLEANUP_LOG"
-            fi
+            echo "Removing keystore directory: ${{ env.KEYSTORE_DIR }}"
             rm -rf "${{ env.KEYSTORE_DIR }}"
-            rm -f "$CLEANUP_LOG"
             echo "✓ Keystore directory removed"
           else
             echo "ℹ No keystore directory to clean up"
