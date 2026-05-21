@@ -125,6 +125,7 @@ jobs:
           mkdir -p "$KEYSTORE_DIR"
           echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > "$KEYSTORE_DIR/omnibus-docker.jks"
           echo "KEYSTORE_PATH=$KEYSTORE_DIR/omnibus-docker.jks" >> $GITHUB_ENV
+          echo "KEYSTORE_DIR=$KEYSTORE_DIR" >> $GITHUB_ENV
 
       - name: Build Release APK
         env:
@@ -142,12 +143,16 @@ jobs:
             exit 1
           fi
           
-          # Verify the APK is signed
-          if ! jarsigner -verify -verbose -certs "$APK_FILE" > /dev/null 2>&1; then
+          # Verify the APK is signed and capture output
+          if ! jarsigner -verify -verbose -certs "$APK_FILE" 2>&1 | tee /tmp/jarsigner_output.txt; then
             echo "ERROR: APK signature verification failed!"
+            echo "jarsigner output:"
+            cat /tmp/jarsigner_output.txt
             exit 1
           fi
           echo "✓ APK signature verified successfully"
+          echo "jarsigner output:"
+          cat /tmp/jarsigner_output.txt
           
           # Get file size and checksum
           ls -lh "$APK_FILE"
@@ -168,11 +173,13 @@ jobs:
         if: always()
         run: |
           # Securely remove keystore directory
-          KEYSTORE_DIR="${RUNNER_TEMP:-/tmp}/android_keystore_$$"
-          if [ -d "$KEYSTORE_DIR" ]; then
-            shred -vfz -n 3 "$KEYSTORE_DIR"/* 2>/dev/null || true
-            rm -rf "$KEYSTORE_DIR"
+          if [ -n "${{ env.KEYSTORE_DIR }}" ] && [ -d "${{ env.KEYSTORE_DIR }}" ]; then
+            echo "Securely removing keystore files from: ${{ env.KEYSTORE_DIR }}"
+            find "${{ env.KEYSTORE_DIR }}" -type f -exec shred -vfz -n 3 {} \; 2>/dev/null || true
+            rm -rf "${{ env.KEYSTORE_DIR }}"
             echo "✓ Keystore files securely removed"
+          else
+            echo "No keystore directory to clean up"
           fi
 
       - name: Create Release
