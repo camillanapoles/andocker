@@ -15,7 +15,6 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
-import androidx.activity.OnBackInvokedDispatcher
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -55,8 +54,9 @@ class MainActivity : AppCompatActivity() {
 
         // Predictive back callback (Android 16)
         if (Build.VERSION.SDK_INT >= 36) {
+            @Suppress("UNCHECKED_CAST")
             onBackInvokedDispatcher.registerOnBackInvokedCallback(
-                OnBackInvokedDispatcher.PRIORITY_DEFAULT
+                100 // android.app.OnBackInvokedDispatcher.PRIORITY_DEFAULT is 100
             ) {
                 if (webView.canGoBack()) {
                     webView.goBack()
