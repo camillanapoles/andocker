@@ -1,0 +1,14 @@
+KEYMAPOPTS="us us"
+HOSTNAMEOPTS="-n omnibus-docker"
+INTERFACESOPTS="auto lo
+iface lo inet loopback
+auto eth0
+iface eth0 inet dhcp
+hostname omnibus-docker
+"
+TIMEZONEOPTS="-z UTC"
+PROXYOPTS="none"
+APKREPOSOPTS="-1"
+SSHDOPTS="-c openssh"
+NTPOPTS="-c busybox"
+DISKOPTS="-v -m sys -s 0 /dev/vda"

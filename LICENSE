@@ -1,0 +1,18 @@
+OMNIBUS Docker Android — License
+
+Copyright (c) 2026
+
+PERMISSÃO É CONCEDIDA, sem custos, a qualquer pessoa que obtenha uma cópia
+deste software e arquivos de documentação associados (o "Software"), para
+usar o Software para FINS PESSOAIS E NÃO COMERCIAIS, sujeito às seguintes
+condições:
+
+1. Uso comercial é EXPRESSAMENTE PROIBIDO sem autorização prévia por escrito.
+2. O aviso de copyright acima e este aviso de permissão devem ser incluídos
+   em todas as cópias ou partes substanciais do Software.
+3. O Software é fornecido "NO ESTADO EM QUE SE ENCONTRA", sem garantia de
+   qualquer tipo, expressa ou implícita.
+
+AVISO: Este projeto envolve execução de máquinas virtuais e containers em
+dispositivos móveis. O uso incorreto pode causar superaquecimento, dreno
+acelerado de bateria ou perda de dados. Use por sua conta e risco.

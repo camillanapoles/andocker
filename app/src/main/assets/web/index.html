@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>OMNIBUS Docker</title>
+<link rel="stylesheet" href="css/omnibus.css">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="logo">🐳 OMNIBUS <span>DOCKER</span></div>
+    <div class="status" id="status-bar">
+      <span class="badge" id="termux-badge">⏳ Termux</span>
+      <span class="badge" id="vm-badge">⏳ VM</span>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <!-- SEÇÃO: SETUP -->
+    <section class="card" id="setup-card">
+      <h2>🔧 Setup Inicial</h2>
+      <p>O Termux é obrigatório. Após instalar, execute os comandos abaixo no Termux.</p>
+      <div class="command-box">
+        <pre id="setup-commands">Carregando...</pre>
+        <button class="btn btn-primary" onclick="copySetup()">📋 Copiar Comandos</button>
+        <button class="btn btn-secondary" onclick="openTermux()">📱 Abrir Termux</button>
+      </div>
+      <div class="hint">
+        <strong>Dica:</strong> Os scripts foram extraídos para <code>/sdcard/Download/omnibus-docker-scripts/</code>
+      </div>
+    </section>
+
+    <!-- SEÇÃO: CONFIG VM -->
+    <section class="card" id="config-card">
+      <h2>⚙️ Configuração da VM</h2>
+      <div class="form-grid">
+        <label>RAM (MB): <input type="number" id="ram-input" value="2048" min="512" max="4096"></label>
+        <label>Disco (GB): <input type="number" id="disk-input" value="8" min="4" max="32"></label>
+        <label>API Port: <input type="number" id="api-port-input" value="7749" readonly></label>
+        <label>SSH Port: <input type="number" id="ssh-port-input" value="2222" readonly></label>
+      </div>
+      <button class="btn btn-primary" onclick="saveConfig()">💾 Salvar Config</button>
+      <button class="btn btn-accent" onclick="showQemuCmd()">📜 Ver Comando QEMU</button>
+    </section>
+
+    <!-- SEÇÃO: COMANDO QEMU -->
+    <section class="card hidden" id="qemu-cmd-card">
+      <h2>🖥️ Comando QEMU Gerado</h2>
+      <pre id="qemu-command">Carregando...</pre>
+      <button class="btn btn-primary" onclick="copyQemuCmd()">📋 Copiar</button>
+    </section>
+
+    <!-- SEÇÃO: ACESSO VM -->
+    <section class="card" id="access-card">
+      <h2>🚀 Acessar VM Docker</h2>
+      <p>Após iniciar a VM, acesse:</p>
+      <div class="link-grid">
+        <a class="btn btn-success" href="#" onclick="loadDashboard()">📊 Dashboard Docker</a>
+        <a class="btn btn-success" href="#" onclick="loadTerminal()">💻 Terminal Web</a>
+      </div>
+      <div class="hint">
+        <strong>SSH manual:</strong> <code>ssh -p 2222 root@localhost</code> (senha: root)
+      </div>
+    </section>
+
+    <!-- SEÇÃO: INFO -->
+    <section class="card" id="info-card">
+      <h2>📚 Informações</h2>
+      <ul>
+        <li><strong>Arquitetura:</strong> QEMU aarch64 → Alpine Linux → Docker</li>
+        <li><strong>Proxy Reverso:</strong> Nginx na VM mapeia containers para <code>localhost:8080</code></li>
+        <li><strong>Storage:</strong> <code>~/storage/shared</code> bind-mount na VM</li>
+        <li><strong>Otimização:</strong> Docker compartilha layers automaticamente entre containers</li>
+        <li><strong>Camera:</strong> Via Termux:API + volume mount (read-only)</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <small>OMNIBUS Docker Android v1.0.0 | Uso Pessoal | Android 16 (API 36)</small>
+  </footer>
+</div>
+
+<script src="js/omnibus.js"></script>
+</body>
+</html>
